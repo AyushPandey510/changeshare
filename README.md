@@ -12,13 +12,19 @@
 
 Node 22 is required by the selected CPace package. This is newer than the Node 18 floor in the draft FSD.
 
-## Install from the private GitHub repository
+## Install without cloning the repository
+
+1. Open the [GitHub Releases page](https://github.com/ayushpandey-ops/changeshare/releases) and download the binary for your Linux CPU: `changeshare-linux-x64` or `changeshare-linux-arm64`.
+2. Put it on your PATH:
 
 ```sh
-npm install --global git+https://github.com/ayushpandey-ops/changeshare.git
+mkdir -p "$HOME/.local/bin"
+install -m 755 ~/Downloads/changeshare-linux-x64 "$HOME/.local/bin/changeshare"
 ```
 
-Give your colleague access to the private `ayushpandey-ops/changeshare` GitHub repository first. The compiled CLI is included in the repository, so they do not need TypeScript or the development dependencies to install it. If their GitHub access is through SSH, use `git+ssh://git@github.com/ayushpandey-ops/changeshare.git` instead.
+Use `changeshare-linux-arm64` on ARM64 computers. Make sure `$HOME/.local/bin` is on your PATH, then run `changeshare --version`. The binary includes its runtime; Git is still required. Because the repository is private, give colleagues GitHub access to download its releases. They do not need to clone the repository.
+
+To publish a new binary release, push a version tag such as `v0.1.0`. GitHub Actions builds both Linux binaries and attaches them to that release.
 
 ## Quick start
 

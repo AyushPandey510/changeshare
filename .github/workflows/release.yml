@@ -1,0 +1,44 @@
+name: Build Linux releases
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: latest
+      - run: npm ci
+      - name: Build standalone Linux binaries
+        run: |
+          bun build --compile --target=bun-linux-x64 ./src/cli.ts --outfile changeshare-linux-x64
+          bun build --compile --target=bun-linux-arm64 ./src/cli.ts --outfile changeshare-linux-arm64
+          chmod +x changeshare-linux-x64 changeshare-linux-arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-binaries
+          path: changeshare-linux-*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-binaries
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: changeshare-linux-*
+          fail_on_unmatched_files: true
