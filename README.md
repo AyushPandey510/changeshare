@@ -18,7 +18,7 @@ Node 22 is required by the selected CPace package. This is newer than the Node 1
 npm install --global git+https://github.com/ayushpandey-ops/changeshare.git
 ```
 
-Give your colleague access to the private `ayushpandey-ops/changeshare` GitHub repository first. npm builds the CLI as part of installation. If their GitHub access is through SSH, use `git+ssh://git@github.com/ayushpandey-ops/changeshare.git` instead.
+Give your colleague access to the private `ayushpandey-ops/changeshare` GitHub repository first. The compiled CLI is included in the repository, so they do not need TypeScript or the development dependencies to install it. If their GitHub access is through SSH, use `git+ssh://git@github.com/ayushpandey-ops/changeshare.git` instead.
 
 ## Quick start
 
