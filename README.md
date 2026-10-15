@@ -12,13 +12,13 @@
 
 Node 22 is required by the selected CPace package. This is newer than the Node 18 floor in the draft FSD.
 
-## Install from a checkout
+## Install from the private GitHub repository
 
 ```sh
-npm ci
-npm run build
-npm link
+npm install --global git+https://github.com/ayushpandey-ops/changeshare.git
 ```
+
+Give your colleague access to the private `ayushpandey-ops/changeshare` GitHub repository first. npm builds the CLI as part of installation. If their GitHub access is through SSH, use `git+ssh://git@github.com/ayushpandey-ops/changeshare.git` instead.
 
 ## Quick start
 

@@ -6,11 +6,13 @@
   "bin": {
     "changeshare": "dist/cli.js"
   },
+  "files": ["dist", "README.md"],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
     "start": "node dist/cli.js"
   },
   "dependencies": {
