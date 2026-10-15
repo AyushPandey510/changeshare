@@ -20,7 +20,7 @@ mkdir -p "$INSTALL_DIR"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-curl --fail --location --silent --show-error --retry 3 \
+curl --fail --location --show-error --progress-bar --retry 3 \
   "$RELEASE_URL/$ASSET" --output "$TMP_DIR/$ASSET"
 install -m 755 "$TMP_DIR/$ASSET" "$INSTALL_DIR/changeshare"
 
