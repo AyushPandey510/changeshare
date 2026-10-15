@@ -40,5 +40,7 @@ jobs:
           name: linux-binaries
       - uses: softprops/action-gh-release@v2
         with:
-          files: changeshare-linux-*
+          files: |
+            changeshare-linux-*
+            install.sh
           fail_on_unmatched_files: true
