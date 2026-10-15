@@ -40,6 +40,10 @@ The sender approves each receiver. The receiver reviews the file list and confir
 changeshare receive blue-tiger-42 --host 192.168.1.20
 ```
 
+## VS Code extension
+
+The `vscode-extension/` folder contains a desktop extension that adds Share, Receive, Undo, and LAN diagnostics commands while keeping this CLI as the transfer engine. See [the extension guide](vscode-extension/README.md) for local development and packaging. The extension currently targets Linux, matching the available release binaries.
+
 ## Commands
 
 ```text

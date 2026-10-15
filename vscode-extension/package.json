@@ -1,0 +1,42 @@
+{
+  "name": "changeshare-vscode",
+  "displayName": "ChangeShare",
+  "description": "Share uncommitted Git changes with a colleague on your LAN.",
+  "version": "0.1.0",
+  "publisher": "ayushpandeyops",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other", "SCM Providers"],
+  "keywords": ["git", "share", "lan", "changes"],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onCommand:changeshare.share",
+    "onCommand:changeshare.receive",
+    "onCommand:changeshare.undo",
+    "onCommand:changeshare.doctor"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "changeshare.share", "title": "ChangeShare: Share Changes", "category": "ChangeShare" },
+      { "command": "changeshare.receive", "title": "ChangeShare: Receive Changes", "category": "ChangeShare" },
+      { "command": "changeshare.undo", "title": "ChangeShare: Undo Last Transfer", "category": "ChangeShare" },
+      { "command": "changeshare.doctor", "title": "ChangeShare: Check LAN Connection", "category": "ChangeShare" }
+    ],
+    "configuration": {
+      "title": "ChangeShare",
+      "properties": {
+        "changeshare.executablePath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Optional path to the ChangeShare CLI executable. Leave empty to use changeshare from PATH or ~/.local/bin/changeshare."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "package": "npx @vscode/vsce package"
+  }
+}
