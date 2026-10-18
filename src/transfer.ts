@@ -50,7 +50,7 @@ async function prompt(text: string, defaultNo = true) {
   const rl = createInterface({ input: stdin, output: stdout });
   try { const a = (await rl.question(text)).trim().toLowerCase(); return a ? a === 'y' || a === 'yes' : !defaultNo; } finally { rl.close(); }
 }
-export interface ServeOptions { code: string; port: number; expiresMinutes: number; change: ChangeSet; }
+export interface ServeOptions { code: string; port: number; expiresMinutes: number; change: ChangeSet; gitName: string; }
 export async function serveShare(opts: ServeOptions) {
   const ip = lanIp(); if (!ip) throw new Error('No LAN interface found. Connect to the local network and run changeshare doctor.');
   const startAt = Date.now(); const expiresAt = startAt + opts.expiresMinutes * 60_000;
@@ -85,7 +85,7 @@ export async function serveShare(opts: ServeOptions) {
         } catch { failures++; active = undefined; if (failures >= 3) resolveDone(); return reply(res, failures >= 3 ? 429 : 401, { error: 'code not recognised or expired' }); }
         const payload = { version: '0.1.0', baseCommit: opts.change.baseCommit, files: opts.change.files, statuses: opts.change.statuses, added: opts.change.added, removed: opts.change.removed, patch: gzipSync(opts.change.patch).toString('base64') };
         used = true;
-        const result = enc(active.isk, sid, { payload, sender: { hostname: hostname(), username: userInfo().username } });
+        const result = enc(active.isk, sid, { payload, sender: { hostname: hostname(), username: userInfo().username, gitName: opts.gitName } });
         console.log('Delivered. Done.'); resolveDone();
         return reply(res, 200, { box: result });
       }
@@ -100,7 +100,7 @@ export async function serveShare(opts: ServeOptions) {
     catch (e: any) { if (e.code !== 'EADDRINUSE' || port >= 65535) throw e; port++; }
   }
   const bonjour = new Bonjour();
-  const service = bonjour.publish({ name: `changeshare-${randomBytes(3).toString('hex')}`, type: SERVICE, port, host: hostname(), txt: { v: '1' } });
+  const service = bonjour.publish({ name: `changeshare-${randomBytes(3).toString('hex')}`, type: SERVICE, port, host: hostname(), txt: { v: '1', gitName: opts.gitName.slice(0, 100) } });
   const timer = setTimeout(() => resolveDone(), Math.max(1, expiresAt - Date.now())); timer.unref();
   console.log(`Share code: ${opts.code}`); console.log(`Waiting for receiver at ${ip}:${port} (expires in ${opts.expiresMinutes} min)...`);
   try { await done; } finally { clearTimeout(timer); service.stop(); bonjour.destroy(); server.close(); codeKey.fill(0); }
@@ -112,11 +112,34 @@ export async function discover(port: number, host?: string) {
   }
   const bonjour = new Bonjour(); const browser = bonjour.find({ type: SERVICE });
   try {
-    const found = await new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('Could not find the sender automatically. Ask them for their IP, then pass --host <ip>.')), 10_000);
-      browser.on('up', (svc: any) => { const ip = svc.addresses?.find((a: string) => a.includes('.') && localAddress(a)); if (ip) { clearTimeout(timer); resolve(`http://${ip}:${svc.port}`); } });
+    const candidates = await new Promise<any[]>((resolve, reject) => {
+      const found = new Map<string, any>();
+      let settleTimer: NodeJS.Timeout | undefined;
+      const timer = setTimeout(() => {
+        if (found.size) resolve([...found.values()]);
+        else reject(new Error('Could not find the sender automatically. Ask them for their IP, then pass --host <ip>.'));
+      }, 10_000);
+      browser.on('up', (svc: any) => {
+        const ip = svc.addresses?.find((a: string) => a.includes('.') && localAddress(a));
+        if (!ip) return;
+        const cleanLabel = (value: unknown, fallback: string) => String(value || fallback).replace(/[\u0000-\u001f\u007f-\u009f]/g, '').slice(0, 100) || fallback;
+        const candidate = { ip, port: svc.port, gitName: cleanLabel(svc.txt?.gitName, 'Git name not set'), hostname: cleanLabel(svc.host || svc.name, 'Unknown host') };
+        found.set(`${ip}:${svc.port}`, candidate);
+        // Give other active senders a moment to appear before presenting a choice.
+        if (!settleTimer) settleTimer = setTimeout(() => { clearTimeout(timer); resolve([...found.values()]); }, 1500);
+      });
     });
-    return found;
+    if (candidates.length === 1) return `http://${candidates[0].ip}:${candidates[0].port}`;
+    console.log('Discovered senders:');
+    candidates.forEach((sender, index) => console.log(`  ${index + 1}. ${sender.gitName} — ${sender.hostname} (${sender.ip}:${sender.port})`));
+    const rl = createInterface({ input: stdin, output: stdout });
+    try {
+      const answer = (await rl.question('Choose a sender number: ')).trim();
+      const choice = Number(answer);
+      if (!Number.isInteger(choice) || choice < 1 || choice > candidates.length) throw new Error('Invalid sender selection. Run receive again and choose a listed number.');
+      const selected = candidates[choice - 1];
+      return `http://${selected.ip}:${selected.port}`;
+    } finally { rl.close(); }
   } finally { browser.stop(); bonjour.destroy(); }
 }
 async function fetchJson<T>(url: string, method = 'GET', data?: unknown): Promise<T> {
@@ -131,8 +154,23 @@ export async function pullShare(code: string, host?: string, port = 8765) {
   const connection = await fetchJson<{ share: string }>(`${url}/connect`, 'POST', { receiver: hostname() });
   const isk = cpace.ristretto255.deriveIskSymmetric({ ephemeralSecret: client.ephemeralSecret, ownShare: client.share, peerShare: Buffer.from(connection.share, 'base64'), sid, ownAD: Buffer.alloc(0), peerAD: Buffer.alloc(0) });
   const response = await fetchJson<{ box: Box }>(`${url}/deliver`, 'POST', { share: Buffer.from(client.share).toString('base64'), box: enc(isk, sid, { ready: 'changeshare-v1' }) });
-  const envelope = dec<{ payload: { version: string; baseCommit: string; files: string[]; statuses: Record<string, string>; added: number; removed: number; patch: string }; sender: { hostname: string; username: string } }>(isk, sid, response.box);
+  const envelope = dec<{ payload: { version: string; baseCommit: string; files: string[]; statuses: Record<string, string>; added: number; removed: number; patch: string }; sender: { hostname: string; username: string; gitName?: string } }>(isk, sid, response.box);
   const payload = envelope.payload;
+  if (!payload || typeof payload !== 'object' || typeof payload.version !== 'string' ||
+      typeof payload.baseCommit !== 'string' || !Array.isArray(payload.files) ||
+      payload.files.some((file: unknown) => typeof file !== 'string') ||
+      !payload.statuses || typeof payload.statuses !== 'object' ||
+      typeof payload.added !== 'number' || typeof payload.removed !== 'number' ||
+      typeof payload.patch !== 'string') {
+    throw new Error('The sender returned an invalid change bundle.');
+  }
+  let patch: Buffer;
+  try {
+    patch = gunzipSync(Buffer.from(payload.patch, 'base64'), { maxOutputLength: MAX });
+  } catch (error: any) {
+    if (error.code === 'ERR_BUFFER_TOO_LARGE') throw new Error('The patch exceeds the 150 MB limit.');
+    throw new Error('The sender returned a damaged patch bundle.');
+  }
   codeKey.fill(0);
-  return { ...payload, sender: envelope.sender, patch: gunzipSync(Buffer.from(payload.patch, 'base64')) };
+  return { ...payload, sender: envelope.sender, patch };
 }

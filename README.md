@@ -34,7 +34,7 @@ changeshare send
 changeshare receive blue-tiger-42
 ```
 
-The sender approves each receiver. The receiver reviews the file list and confirms before applying. If mDNS discovery does not find the sender, use the LAN address shown on the sender:
+The sender approves each receiver. When multiple senders are discovered, the receiver lists their Git names, hostnames, and addresses so you can choose the right machine. The receiver reviews the file list and confirms before applying. The share code still authenticates the transfer. If mDNS discovery does not find the sender, use the LAN address shown on the sender:
 
 ```sh
 changeshare receive blue-tiger-42 --host 192.168.1.20
@@ -48,12 +48,12 @@ The `vscode-extension/` folder contains a desktop extension that adds Share, Rec
 
 ```text
 changeshare send [paths...] [--stash [stash@{n}]] [--preview] [--yes] [--port n] [--expires min] [--include-ignored]
-changeshare receive <code> [--host ip] [--port n] [--yes] [--3way] [--dry-run]
+changeshare receive <code> [--host ip] [--port n] [--yes] [--3way] [--dry-run] [--preview]
 changeshare undo
 changeshare doctor [--listen | --peer ip]
 ```
 
-`send` includes tracked edits, deletions, and untracked nonignored files. Paths restrict the transfer. `--preview` displays the patch. `--stash` sends the latest stash or the selected ref. `--yes` skips the ordinary send/apply prompts; secret findings still require explicit confirmation and sender approval is always required.
+`send` includes tracked edits, deletions, and untracked nonignored files. Paths restrict the transfer. `--preview` displays the patch before sending. On `receive`, `--preview` displays the received patch before the apply prompt. `--stash` sends the latest stash or the selected ref. `--yes` skips the ordinary send/apply prompts; secret findings still require explicit confirmation and sender approval is always required.
 
 The default secret-file denylist is `.env*`, `*.pem`, `*.key`, and `id_rsa*`. Configure it in a repository-local `.changeshare.json`:
 
@@ -69,14 +69,14 @@ The default secret-file denylist is `.env*`, `*.pem`, `*.key`, and `id_rsa*`. Co
 
 - A temporary server binds to a private or link-local IPv4 interface only. It tries the next port when the requested port is occupied and closes after delivery, expiry, or cancellation.
 - The receiver authenticates with CPace using the share code. The patch is gzip-compressed and encrypted with AES-256-GCM using a derived session key. The code is never sent over HTTP.
-- Sender username and hostname are sent inside the encrypted live transfer envelope and shown to the receiver at the apply prompt. They are not part of the patch or undo data.
+- Sender Git name is advertised on the local network for sender selection. The sender's Git name, OS username, and hostname are also sent inside the encrypted live transfer envelope and shown to the receiver at the apply prompt. They are not part of the patch or undo data.
 - There is no telemetry or cloud service. Discovery and peer traffic stay on the LAN.
 - Discovery advertises a random service name instead of a plain hash of the short code. A public hash of a short code would allow offline guessing and defeat the PAKE's protection.
 - The PAKE dependency is pre-1.0 and documents that it has not had an independent audit. Review its threat model before using this tool for sensitive transfers; the dependency check alone is not a cryptographic audit.
 
 ## Applying, conflicts, and undo
 
-The receiver checks the patch before applying it. A differing base commit prompts for a three-way apply. On conflicts, choose a three-way apply, apply clean hunks and leave `.rej` files, or abort. `--dry-run` checks without applying. A dirty receiver tree can be stashed before transfer; the stash is retained so it can be restored after undo or review. `changeshare undo` applies a reverse patch stored under `.git/changeshare`.
+The receiver checks the patch before applying it. A differing base commit prompts for a three-way apply. On conflicts, choose a three-way apply, apply clean hunks and leave `.rej` files, or abort. A three-way conflict leaves conflict markers in the affected files and prints the file list. Resolve the markers, run `git add -- <files>`, then `git restore --staged -- <files>` to keep the resolved result as uncommitted edits. To discard the transfer before editing, run `changeshare undo`. `--dry-run` checks without applying. A dirty receiver tree can be stashed before transfer; the stash is retained so it can be restored after undo or review. `changeshare undo` applies a reverse patch stored under `.git/changeshare`.
 
 ## Troubleshooting
 

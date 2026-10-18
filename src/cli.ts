@@ -12,7 +12,7 @@ import { pullShare, serveShare } from './transfer.js';
 
 const exec = promisify(execFile);
 const VERSION = '0.1.0';
-function help() { console.log(`changeshare ${VERSION}\n\nUsage:\n  changeshare send [paths...] [--stash [ref]] [--yes] [--preview] [--port n] [--expires min] [--include-ignored]\n  changeshare receive <code> [--host ip] [--port n] [--yes] [--3way] [--dry-run]\n  changeshare undo\n  changeshare doctor [--listen | --peer ip]\n`); }
+function help() { console.log(`changeshare ${VERSION}\n\nUsage:\n  changeshare send [paths...] [--stash [ref]] [--yes] [--preview] [--port n] [--expires min] [--include-ignored]\n  changeshare receive <code> [--host ip] [--port n] [--yes] [--3way] [--dry-run] [--preview]\n  changeshare undo\n  changeshare doctor [--listen | --peer ip]\n`); }
 async function confirm(question: string, yes = false, defaultNo = false) {
   if (yes) return true;
   const rl = createInterface({ input: stdin, output: stdout });
@@ -46,7 +46,10 @@ async function send(args: string[]) {
   } else console.log('No secrets found.');
   if (!await confirm('Send? [Y/n]', yes)) return;
   const code = shareCode();
-  await serveShare({ code, port: portArg, expiresMinutes: expires, change });
+  let gitName = '';
+  try { gitName = (await git(['config', 'user.name'], root)).toString().trim(); } catch {}
+  if (!gitName) gitName = 'Git name not set';
+  await serveShare({ code, port: portArg, expiresMinutes: expires, change, gitName });
 }
 async function receive(args: string[]) {
   const root = await repoRoot(); const code = args.find(a => !a.startsWith('--'));
@@ -59,8 +62,9 @@ async function receive(args: string[]) {
   const patch = payload.patch;
   const base = (await git(['rev-parse', 'HEAD'], root)).toString().trim();
   const baseDiffers = base !== payload.baseCommit;
-  console.log(`${payload.sender.username}@${payload.sender.hostname} is sharing changes. ${payload.files.length} file(s), ${(patch.length / 1024).toFixed(1)} KB${baseDiffers ? '\nWarning: base commit differs from the sender.' : ''}`);
+  console.log(`${payload.sender.gitName || payload.sender.username} (${payload.sender.hostname}) is sharing changes. ${payload.files.length} file(s), +${payload.added} -${payload.removed}, ${(patch.length / 1024).toFixed(1)} KB${baseDiffers ? '\nWarning: base commit differs from the sender.' : ''}`);
   payload.files.forEach(f => console.log(`  ${payload.statuses[f] || 'changed'} ${f}`));
+  if (args.includes('--preview')) console.log(`\n${patch.toString('utf8')}`);
   if (args.includes('--dry-run')) {
     try { await applyPatch(root, patch, args.includes('--3way'), true); console.log('Dry run: patch applies cleanly.'); }
     catch (e: any) { console.log(`Dry run found conflicts: ${e.message}`); }
@@ -82,7 +86,27 @@ async function receive(args: string[]) {
   }
   if (dirty) await git(['stash', 'push', '--include-untracked', '-m', `changeshare-autostash-${Date.now()}`], root);
   try { await applyPatch(root, patch, use3way, false, false, reject); }
-  catch (e: any) { throw new Error(`Could not apply the transfer; no changes were applied. ${e.message}`); }
+  catch (e: any) {
+    if (use3way) {
+      const conflicts = (await git(['diff', '--name-only', '--diff-filter=U', '-z'], root)).toString().split('\0').filter(Boolean);
+      if (conflicts.length) {
+        const partial = await workingChanges(root, payload.files, true);
+        if (partial.patch.length) await makeUndo(root, partial.patch);
+        // Keep Git's conflict markers in the worktree but clear unmerged index entries
+        // so the user can resolve the files with ordinary editor and Git commands.
+        await git(['reset', '--', ...conflicts], root);
+        console.log(`Three-way apply left conflicts in ${conflicts.length} file(s):`);
+        conflicts.forEach(file => console.log(`  ${file}`));
+        console.log('Edit the files and remove the conflict markers. Then run:');
+        console.log('  git add -- <resolved-files>');
+        console.log('  git restore --staged -- <resolved-files>');
+        console.log('The second command keeps the resolved changes in your working tree as uncommitted edits.');
+        console.log('To discard the transfer before editing, run: changeshare undo');
+        return;
+      }
+    }
+    throw new Error(`Git could not apply the transfer cleanly. Check your working tree with git status. ${e.message}`);
+  }
   const undoPaths = reject ? [...payload.files, ...payload.files.map(f => `${f}.rej`)] : payload.files;
   const applied = await workingChanges(root, undoPaths, true);
   await makeUndo(root, applied.patch);
