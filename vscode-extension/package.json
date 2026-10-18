@@ -32,6 +32,14 @@
           "default": "",
           "scope": "machine",
           "description": "Optional path to the ChangeShare CLI executable. Leave empty to use changeshare from PATH or ~/.local/bin/changeshare."
+        },
+        "changeshare.defaultPort": {
+          "type": "integer",
+          "default": 8765,
+          "minimum": 1,
+          "maximum": 65535,
+          "scope": "machine",
+          "description": "Default LAN port passed to ChangeShare send and receive commands."
         }
       }
     }

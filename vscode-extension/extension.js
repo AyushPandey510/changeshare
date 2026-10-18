@@ -67,21 +67,40 @@ async function ensureCli() {
   return null;
 }
 
-async function run(command, args, title) {
+async function run(command, args, title, selectedFolder) {
   if (!await requireLinux()) return;
-  const folder = await chooseWorkspace();
+  const folder = selectedFolder || await chooseWorkspace();
   if (!folder) return;
   const binary = await ensureCli();
   if (!binary) return;
+  const commandArgs = [...args];
+  if ((command === 'send' || command === 'receive') && !commandArgs.includes('--port')) {
+    const configuredPort = Number(vscode.workspace.getConfiguration('changeshare').get('defaultPort', 8765));
+    if (Number.isInteger(configuredPort) && configuredPort >= 1 && configuredPort <= 65535) commandArgs.push('--port', String(configuredPort));
+  }
   const terminal = vscode.window.createTerminal({ name: title, cwd: folder.uri.fsPath });
+  activeTerminals.add(terminal);
+  updateOperationStatus();
   terminal.show(true);
-  terminal.sendText([binary, command, ...args].map(quoteShell).join(' '), true);
+  terminal.sendText([binary, command, ...commandArgs].map(quoteShell).join(' '), true);
+}
+
+const activeTerminals = new Set();
+let operationStatus;
+function updateOperationStatus() {
+  if (!operationStatus) return;
+  if (activeTerminals.size) {
+    operationStatus.text = '$(terminal) ChangeShare Terminal';
+    operationStatus.tooltip = 'A ChangeShare command is open in an integrated terminal';
+    operationStatus.show();
+  } else operationStatus.hide();
 }
 
 async function share() {
   const choice = await vscode.window.showQuickPick(
     [
-      { label: 'Current changes', description: 'Share tracked edits and untracked files', args: [] },
+      { label: 'Current changes', description: 'Review the file list and send', args: [] },
+      { label: 'Preview current changes', description: 'Show the patch before sending', args: ['--preview'] },
       { label: 'Latest stash', description: 'Share stash@{0}', args: ['--stash'] },
       { label: 'Choose a stash', description: 'Enter a stash reference such as stash@{1}', stash: true }
     ],
@@ -109,7 +128,27 @@ async function receive() {
     validateInput: value => /^[a-z]+-[a-z]+-\d{2}$/.test(value.trim()) ? null : 'Enter a code in the format blue-tiger-42.'
   });
   if (!code) return;
-  await run('receive', [code.trim()], 'ChangeShare: Receive');
+  const mode = await vscode.window.showQuickPick(
+    [
+      { label: 'Review then apply', description: 'Show changed files and ask before applying', args: [] },
+      { label: 'Preview patch then review', description: 'Print the patch before the apply prompt', args: ['--preview'] },
+      { label: 'Dry run only', description: 'Check whether the patch applies without changing files', args: ['--dry-run'] }
+    ],
+    { placeHolder: 'How would you like to receive these changes?' }
+  );
+  if (!mode) return;
+  await run('receive', [code.trim(), ...mode.args], 'ChangeShare: Receive');
+}
+
+async function undo() {
+  const folder = await chooseWorkspace();
+  if (!folder) return;
+  const choice = await vscode.window.showWarningMessage(
+    `Undo the latest ChangeShare transfer in “${folder.name}”?`,
+    { modal: true, detail: 'This reverses the most recently applied transfer in this project.' },
+    'Undo Transfer'
+  );
+  if (choice === 'Undo Transfer') await run('undo', [], 'ChangeShare: Undo', folder);
 }
 
 function activate(context) {
@@ -118,11 +157,16 @@ function activate(context) {
   shareButton.tooltip = 'Share Git changes with ChangeShare';
   shareButton.command = 'changeshare.share';
   shareButton.show();
+  operationStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
+  context.subscriptions.push(operationStatus, vscode.window.onDidCloseTerminal(terminal => {
+    activeTerminals.delete(terminal);
+    updateOperationStatus();
+  }));
   context.subscriptions.push(
     shareButton,
     vscode.commands.registerCommand('changeshare.share', share),
     vscode.commands.registerCommand('changeshare.receive', receive),
-    vscode.commands.registerCommand('changeshare.undo', () => run('undo', [], 'ChangeShare: Undo')),
+    vscode.commands.registerCommand('changeshare.undo', undo),
     vscode.commands.registerCommand('changeshare.doctor', () => run('doctor', [], 'ChangeShare: Doctor'))
   );
 }

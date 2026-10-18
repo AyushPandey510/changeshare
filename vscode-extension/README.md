@@ -11,7 +11,9 @@ This desktop extension adds guided commands to VS Code while the existing Change
    - **ChangeShare: Receive Changes** — enter the sender's code.
    - **ChangeShare: Undo Last Transfer** — undo the latest received transfer.
    - **ChangeShare: Check LAN Connection** — run the CLI diagnostics.
-4. Follow the prompts in the integrated terminal. It shows the sender approval, file review, secret checks, apply confirmation, and any Git conflict details.
+4. Choose whether to preview a send or receive, or run a receive dry run. Follow the prompts in the integrated terminal. It shows sender approval, file review, secret checks, apply confirmation, and any Git conflict details.
+
+The **Undo Last Transfer** command asks for confirmation before reversing the latest transfer. The status bar shows when a ChangeShare terminal is open. Configure `changeshare.defaultPort` in VS Code settings if your LAN uses a different port.
 
 Transfers remain direct between computers on the same LAN. No ChangeShare server is involved. The extension currently targets Linux, matching the available CLI binaries.
 
