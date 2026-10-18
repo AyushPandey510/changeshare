@@ -21,6 +21,6 @@ Transfers remain direct between computers on the same LAN. No ChangeShare server
 
 Open this folder in VS Code and press `F5` to launch an Extension Development Host. Run `npm run package` to create a `.vsix` package. Install it with **Extensions: Install from VSIX...** or `code --install-extension changeshare-vscode-0.1.0.vsix`.
 
-## Publish
+## Release distribution
 
-Create a publisher in the Visual Studio Marketplace, set the matching publisher ID in `package.json`, then package and publish with Microsoft's `vsce` tool. Marketplace publishing credentials must be kept outside the repository.
+The VS Code extension is distributed as a VSIX attached to the project's GitHub Releases; it is not published to the Visual Studio Marketplace. The root release workflow packages the extension and attaches it alongside the CLI binaries. See the main [README](../README.md#publish-a-github-release) for the release steps. Users can install both the CLI and extension with the single `curl` command there.

@@ -22,7 +22,16 @@ curl -fsSL https://raw.githubusercontent.com/AyushPandey510/changeshare/main/ins
 
 The installer detects x64 or ARM64 and installs the matching CLI binary to `~/.local/bin/changeshare`. If the VS Code `code` or `code-insiders` command is on PATH, it also downloads and installs the ChangeShare VS Code extension from the same GitHub release. If it updates your shell configuration, open a new terminal (or run the `source` command it prints). Then run `changeshare --version`. Git remains required. Colleagues do not need to clone the repository.
 
-To publish a new release, push a new version tag such as `v0.1.1`. GitHub Actions builds both Linux binaries, packages the VS Code extension, and attaches all three assets to that release.
+### Publish a GitHub release
+
+The installer downloads the CLI and VS Code extension from the latest GitHub release. To create a release, make sure the extension version in `vscode-extension/package.json` is updated, then push a new, unused version tag from the commit you want to release:
+
+```sh
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+Replace `vX.Y.Z` with the next version tag. The GitHub Actions release workflow builds the Linux CLI binaries, packages `changeshare-vscode.vsix`, and attaches those files and `install.sh` to the release. Wait for the workflow to finish and confirm the assets appear on the GitHub Releases page. Then run the install command above; VS Code's `code` or `code-insiders` command must be on `PATH` for the extension to install automatically.
 
 ## Quick start
 
