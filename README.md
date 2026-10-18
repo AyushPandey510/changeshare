@@ -24,7 +24,7 @@ Run this on both computers:
 curl -fsSL https://raw.githubusercontent.com/AyushPandey510/changeshare/main/install.sh | bash
 ```
 
-The installer downloads the matching CLI binary and, when `code` or
+The installer downloads the matching compressed CLI binary and, when `code` or
 `code-insiders` is on your `PATH`, the VS Code extension too. The CLI is
 installed at `~/.local/bin/changeshare`. If the installer updates your `PATH`,
 open a new terminal as instructed.

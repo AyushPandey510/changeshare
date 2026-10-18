@@ -40,7 +40,7 @@ Code. To install it from a terminal, use the exact filename printed by the
 package command, for example:
 
 ```sh
-code --install-extension changeshare-vscode-0.1.7.vsix
+code --install-extension changeshare-vscode-0.1.8.vsix
 ```
 
 ## Code map

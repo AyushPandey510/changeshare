@@ -15,6 +15,10 @@ if ! command -v git >/dev/null 2>&1; then
   echo "Git is required to use changeshare. Install Git, then rerun this installer." >&2
   exit 1
 fi
+if ! command -v gzip >/dev/null 2>&1; then
+  echo "gzip is required to unpack the ChangeShare CLI. Install gzip, then rerun this installer." >&2
+  exit 1
+fi
 echo "Found curl and Git."
 
 ARCH="$(uname -m)"
@@ -32,8 +36,18 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 echo "Downloading the ChangeShare CLI..."
-curl --fail --location --show-error --progress-bar --retry 3 \
-  "$RELEASE_URL/$ASSET" --output "$TMP_DIR/$ASSET"
+if curl --fail --location --show-error --progress-bar --retry 3 \
+  "$RELEASE_URL/$ASSET.gz" --output "$TMP_DIR/$ASSET.gz"; then
+  echo "Unpacking the compressed CLI..."
+  gzip -t "$TMP_DIR/$ASSET.gz"
+  gzip -dc "$TMP_DIR/$ASSET.gz" > "$TMP_DIR/$ASSET"
+else
+  # Older releases published only the uncompressed asset. Keep those
+  # releases installable while new tags gain the smaller compressed asset.
+  echo "Compressed asset unavailable; trying the legacy CLI download..."
+  curl --fail --location --show-error --progress-bar --retry 3 \
+    "$RELEASE_URL/$ASSET" --output "$TMP_DIR/$ASSET"
+fi
 echo "Installing the CLI to $INSTALL_DIR/changeshare..."
 install -m 755 "$TMP_DIR/$ASSET" "$INSTALL_DIR/changeshare"
 echo "CLI installed."
