@@ -21,7 +21,7 @@ check only while the Stashes view is visible because the public Git API has no
 stash-list event. You can also run **ChangeShare: Refresh Lists** from the
 Command Palette.
 
-Transfers remain direct between computers on the same LAN. No ChangeShare server is involved. The extension currently targets Linux, matching the available CLI binaries.
+Transfers remain direct between computers on the same LAN. No ChangeShare server is involved. The extension currently targets Linux.
 
 ## Develop locally
 
@@ -40,7 +40,7 @@ Code. To install it from a terminal, use the exact filename printed by the
 package command, for example:
 
 ```sh
-code --install-extension changeshare-vscode-0.1.9.vsix
+code --install-extension changeshare-vscode-0.1.10.vsix
 ```
 
 ## Code map
@@ -59,6 +59,6 @@ does the actual patch creation, safety checks, LAN discovery, and transfer.
 The VS Code extension is distributed as a VSIX attached to the project's
 GitHub Releases; it is not published to the Visual Studio Marketplace. The
 root release workflow packages the extension and attaches it alongside the
-CLI binaries. See the main [README](../README.md#publish-a-github-release) for
+Node.js CLI package. See the main [README](../README.md#publish-a-github-release) for
 the release steps. Users can install both the CLI and extension with the
 single `curl` command there.

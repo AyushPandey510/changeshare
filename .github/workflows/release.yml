@@ -1,4 +1,4 @@
-name: Build Linux releases
+name: Build Linux release assets
 
 on:
   push:
@@ -16,26 +16,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: oven-sh/setup-bun@v2.2.0
-        with:
-          bun-version: latest
       - run: npm ci
-      - name: Build standalone Linux binaries
+      - name: Build the Node.js CLI package
         run: |
-          bun build --compile --target=bun-linux-x64 ./src/cli.ts --outfile changeshare-linux-x64
-          bun build --compile --target=bun-linux-arm64 ./src/cli.ts --outfile changeshare-linux-arm64
-          chmod +x changeshare-linux-x64 changeshare-linux-arm64
-          gzip -1 -c changeshare-linux-x64 > changeshare-linux-x64.gz
-          gzip -1 -c changeshare-linux-arm64 > changeshare-linux-arm64.gz
-          ls -lh changeshare-linux-*
+          npm run build
+          mkdir -p changeshare-node-package
+          cp package.json package-lock.json README.md changeshare-node-package/
+          cp -r dist changeshare-node-package/dist
+          (cd changeshare-node-package && npm ci --omit=dev --ignore-scripts --no-audit --no-fund)
+          tar -czf changeshare-node.tar.gz -C changeshare-node-package .
+          ls -lh changeshare-node.tar.gz
       - name: Package VS Code extension
         run: npx --yes @vscode/vsce package --out ../changeshare-vscode.vsix
         working-directory: vscode-extension
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-binaries
+          name: release-assets
           path: |
-            changeshare-linux-*
+            changeshare-node.tar.gz
             changeshare-vscode.vsix
             install.sh
           if-no-files-found: error
@@ -46,11 +44,11 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: linux-binaries
+          name: release-assets
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            changeshare-linux-*
+            changeshare-node.tar.gz
             changeshare-vscode.vsix
             install.sh
           fail_on_unmatched_files: true

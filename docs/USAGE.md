@@ -130,7 +130,7 @@ Stashes also have a 30-second fallback check while the Stashes view is visible,
 because the public Git API has no stash-list event. Configure
 `changeshare.defaultPort` in VS Code settings if needed.
 
-The extension currently targets Linux, matching the released CLI binaries.
+The extension and released CLI currently target Linux.
 See the [extension guide](../vscode-extension/README.md) for development and
 packaging.
 

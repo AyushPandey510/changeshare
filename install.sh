@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO="AyushPandey510/changeshare"
 INSTALL_DIR="${HOME}/.local/bin"
+APP_DIR="${HOME}/.local/lib/changeshare"
 RELEASE_URL="https://github.com/${REPO}/releases/latest/download"
 
 echo "ChangeShare installer"
@@ -15,20 +16,20 @@ if ! command -v git >/dev/null 2>&1; then
   echo "Git is required to use changeshare. Install Git, then rerun this installer." >&2
   exit 1
 fi
-if ! command -v gzip >/dev/null 2>&1; then
-  echo "gzip is required to unpack the ChangeShare CLI. Install gzip, then rerun this installer." >&2
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js 22 or later is required. Install Node.js, then rerun this installer." >&2
+  exit 1
+fi
+if ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)'; then
+  echo "Node.js 22 or later is required; found $(node --version). Upgrade Node.js, then rerun this installer." >&2
+  exit 1
+fi
+if ! command -v tar >/dev/null 2>&1; then
+  echo "tar is required to unpack the ChangeShare CLI package." >&2
   exit 1
 fi
 echo "Found curl and Git."
-
-ARCH="$(uname -m)"
-echo "Detecting Linux architecture: $ARCH"
-case "$ARCH" in
-  x86_64|amd64) ASSET="changeshare-linux-x64" ;;
-  aarch64|arm64) ASSET="changeshare-linux-arm64" ;;
-  *) echo "Unsupported CPU architecture: $ARCH" >&2; exit 1 ;;
-esac
-echo "Selected release binary: $ASSET"
+echo "Found Node.js $(node --version)."
 
 echo "Preparing install directory: $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
@@ -42,6 +43,10 @@ download_asset() {
   local curl_status
   local http_status
 
+  if [ ! -e "$destination" ]; then
+    : > "$destination"
+  fi
+
   while [ "$attempt" -le 5 ]; do
     if http_status="$(curl --fail --location --show-error --progress-bar \
       --http1.1 --connect-timeout 15 --continue-at - \
@@ -51,10 +56,11 @@ download_asset() {
       curl_status=$?
     fi
 
-    # Only a missing asset should trigger the legacy-asset fallback. A
-    # connection failure must retry or stop, never start a larger download.
-    if [ "$curl_status" -eq 22 ] && [ "$http_status" = "404" ]; then
-      return 44
+    # An HTTP error is definitive for this URL. Network errors are retried
+    # below, preserving the partial file for the next range request.
+    if [ "$curl_status" -eq 22 ]; then
+      echo "Release asset request failed with HTTP ${http_status:-unknown}." >&2
+      return "$curl_status"
     fi
 
     if [ "$attempt" -eq 5 ]; then
@@ -69,24 +75,19 @@ download_asset() {
 }
 
 echo "Downloading the ChangeShare CLI..."
-if download_asset "$RELEASE_URL/$ASSET.gz" "$TMP_DIR/$ASSET.gz"; then
-  echo "Unpacking the compressed CLI..."
-  gzip -t "$TMP_DIR/$ASSET.gz"
-  gzip -dc "$TMP_DIR/$ASSET.gz" > "$TMP_DIR/$ASSET"
-else
-  download_status=$?
-  if [ "$download_status" -eq 44 ]; then
-    # Older releases published only the uncompressed asset. Keep those
-    # releases installable, but only fall back for a confirmed missing asset.
-    echo "Compressed asset not found; trying the legacy CLI download..."
-    download_asset "$RELEASE_URL/$ASSET" "$TMP_DIR/$ASSET"
-  else
-    exit "$download_status"
-  fi
-fi
-echo "Installing the CLI to $INSTALL_DIR/changeshare..."
-install -m 755 "$TMP_DIR/$ASSET" "$INSTALL_DIR/changeshare"
-echo "CLI installed."
+PACKAGE_DIR="$TMP_DIR/changeshare"
+mkdir -p "$PACKAGE_DIR"
+download_asset "$RELEASE_URL/changeshare-node.tar.gz" "$TMP_DIR/changeshare-node.tar.gz"
+tar -xzf "$TMP_DIR/changeshare-node.tar.gz" -C "$PACKAGE_DIR"
+echo "Installing the CLI package to $APP_DIR..."
+mkdir -p "$APP_DIR"
+cp -a "$PACKAGE_DIR/." "$APP_DIR/"
+cat > "$INSTALL_DIR/changeshare" <<'WRAPPER'
+#!/usr/bin/env bash
+exec node "${HOME}/.local/lib/changeshare/dist/cli.js" "$@"
+WRAPPER
+chmod 755 "$INSTALL_DIR/changeshare"
+echo "Installed the changeshare command at $INSTALL_DIR/changeshare."
 
 VSCODE_CLI=""
 if command -v code >/dev/null 2>&1; then

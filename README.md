@@ -10,11 +10,11 @@
 
 ### Requirements
 
-- Linux on both computers; released binaries support x64 and ARM64.
+- Linux on both computers.
 - Git 2.30 or later.
+- Node.js 22 or later.
 - A private LAN that allows the computers to connect to one another.
 - `avahi-daemon` is recommended for automatic discovery. `--host` is the fallback.
-- Node.js 22 or later is needed only to build or run from source.
 
 ### Install
 
@@ -24,10 +24,11 @@ Run this on both computers:
 curl -fsSL https://raw.githubusercontent.com/AyushPandey510/changeshare/main/install.sh | bash
 ```
 
-The installer downloads the matching compressed CLI binary and, when `code` or
-`code-insiders` is on your `PATH`, the VS Code extension too. The CLI is
-installed at `~/.local/bin/changeshare`. If the installer updates your `PATH`,
-open a new terminal as instructed.
+The installer downloads the Node.js CLI package and, when `code` or
+`code-insiders` is on your `PATH`, the VS Code extension too. It requires
+Node.js 22 or later and installs the `changeshare` command at
+`~/.local/bin/changeshare`. If the installer updates your `PATH`, open a new
+terminal as instructed.
 
 ### Send your first change
 
@@ -186,7 +187,7 @@ To build from source, install Node.js 22 or later, then run `npm install`,
 ### Publish a GitHub release
 
 Update the extension version in `vscode-extension/package.json`, then push a
-new, unused version tag. GitHub Actions builds the Linux binaries and VSIX and
+new, unused version tag. GitHub Actions packages the Node.js CLI and VSIX and
 attaches them to a [GitHub Release](https://github.com/AyushPandey510/changeshare/releases).
 
 ```sh
@@ -195,7 +196,7 @@ git push origin vX.Y.Z
 ```
 
 Replace `vX.Y.Z` with the version being released, then confirm the workflow
-attached `changeshare-linux-*`, `changeshare-vscode.vsix`, and `install.sh`.
+attached `changeshare-node.tar.gz`, `changeshare-vscode.vsix`, and `install.sh`.
 
 ---
 
