@@ -35,18 +35,54 @@ mkdir -p "$INSTALL_DIR"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
+download_asset() {
+  local url="$1"
+  local destination="$2"
+  local attempt=1
+  local curl_status
+  local http_status
+
+  while [ "$attempt" -le 5 ]; do
+    if http_status="$(curl --fail --location --show-error --progress-bar \
+      --http1.1 --connect-timeout 15 --continue-at - \
+      --output "$destination" --write-out '%{http_code}' "$url")"; then
+      return 0
+    else
+      curl_status=$?
+    fi
+
+    # Only a missing asset should trigger the legacy-asset fallback. A
+    # connection failure must retry or stop, never start a larger download.
+    if [ "$curl_status" -eq 22 ] && [ "$http_status" = "404" ]; then
+      return 44
+    fi
+
+    if [ "$attempt" -eq 5 ]; then
+      echo "Download failed after $attempt attempts (curl $curl_status, HTTP ${http_status:-unknown})." >&2
+      return "$curl_status"
+    fi
+
+    attempt=$((attempt + 1))
+    echo "Download interrupted; retrying from the last byte (attempt $attempt of 5)..." >&2
+    sleep "$attempt"
+  done
+}
+
 echo "Downloading the ChangeShare CLI..."
-if curl --fail --location --show-error --progress-bar --retry 3 \
-  "$RELEASE_URL/$ASSET.gz" --output "$TMP_DIR/$ASSET.gz"; then
+if download_asset "$RELEASE_URL/$ASSET.gz" "$TMP_DIR/$ASSET.gz"; then
   echo "Unpacking the compressed CLI..."
   gzip -t "$TMP_DIR/$ASSET.gz"
   gzip -dc "$TMP_DIR/$ASSET.gz" > "$TMP_DIR/$ASSET"
 else
-  # Older releases published only the uncompressed asset. Keep those
-  # releases installable while new tags gain the smaller compressed asset.
-  echo "Compressed asset unavailable; trying the legacy CLI download..."
-  curl --fail --location --show-error --progress-bar --retry 3 \
-    "$RELEASE_URL/$ASSET" --output "$TMP_DIR/$ASSET"
+  download_status=$?
+  if [ "$download_status" -eq 44 ]; then
+    # Older releases published only the uncompressed asset. Keep those
+    # releases installable, but only fall back for a confirmed missing asset.
+    echo "Compressed asset not found; trying the legacy CLI download..."
+    download_asset "$RELEASE_URL/$ASSET" "$TMP_DIR/$ASSET"
+  else
+    exit "$download_status"
+  fi
 fi
 echo "Installing the CLI to $INSTALL_DIR/changeshare..."
 install -m 755 "$TMP_DIR/$ASSET" "$INSTALL_DIR/changeshare"
@@ -62,8 +98,7 @@ fi
 if [ -n "$VSCODE_CLI" ]; then
   echo "Found VS Code command: $VSCODE_CLI"
   echo "Downloading the ChangeShare VS Code extension..."
-  if curl --fail --location --show-error --progress-bar --retry 3 \
-    "$RELEASE_URL/changeshare-vscode.vsix" --output "$TMP_DIR/changeshare-vscode.vsix"; then
+  if download_asset "$RELEASE_URL/changeshare-vscode.vsix" "$TMP_DIR/changeshare-vscode.vsix"; then
     echo "Installing the VS Code extension..."
     if "$VSCODE_CLI" --install-extension "$TMP_DIR/changeshare-vscode.vsix" --force; then
       echo "Installed the ChangeShare VS Code extension."
