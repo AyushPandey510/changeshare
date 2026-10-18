@@ -25,11 +25,15 @@ jobs:
           bun build --compile --target=bun-linux-x64 ./src/cli.ts --outfile changeshare-linux-x64
           bun build --compile --target=bun-linux-arm64 ./src/cli.ts --outfile changeshare-linux-arm64
           chmod +x changeshare-linux-x64 changeshare-linux-arm64
+      - name: Package VS Code extension
+        run: npx --yes @vscode/vsce package --out ../changeshare-vscode.vsix
+        working-directory: vscode-extension
       - uses: actions/upload-artifact@v4
         with:
           name: linux-binaries
           path: |
             changeshare-linux-*
+            changeshare-vscode.vsix
             install.sh
           if-no-files-found: error
 
@@ -44,5 +48,6 @@ jobs:
         with:
           files: |
             changeshare-linux-*
+            changeshare-vscode.vsix
             install.sh
           fail_on_unmatched_files: true

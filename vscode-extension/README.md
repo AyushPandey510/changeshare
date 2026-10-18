@@ -4,7 +4,7 @@ This desktop extension adds guided commands to VS Code while the existing Change
 
 ## Use it
 
-1. Install the ChangeShare CLI, or choose **Install ChangeShare** when prompted by the extension.
+1. Run the ChangeShare installer from the main README. It installs the CLI and, when the `code` or `code-insiders` command is available, the VS Code extension too. You can also choose **Install ChangeShare** when prompted by the extension to install the CLI.
 2. Open a Git project in VS Code.
 3. Open the Command Palette (`Ctrl+Shift+P`) and choose one of:
    - **ChangeShare: Share Changes** — share current changes or choose a stash.

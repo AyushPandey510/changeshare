@@ -20,9 +20,9 @@ Run this command on Linux:
 curl -fsSL https://raw.githubusercontent.com/AyushPandey510/changeshare/main/install.sh | bash
 ```
 
-The installer detects x64 or ARM64, downloads the matching latest public release binary, installs it to `~/.local/bin/changeshare`, and adds that directory to the Bash or Zsh PATH configuration if needed. If it updates your shell configuration, open a new terminal (or run the `source` command it prints). Then run `changeshare --version`. Git remains required. Colleagues do not need to clone the repository.
+The installer detects x64 or ARM64 and installs the matching CLI binary to `~/.local/bin/changeshare`. If the VS Code `code` or `code-insiders` command is on PATH, it also downloads and installs the ChangeShare VS Code extension from the same GitHub release. If it updates your shell configuration, open a new terminal (or run the `source` command it prints). Then run `changeshare --version`. Git remains required. Colleagues do not need to clone the repository.
 
-To publish a new binary release, push a version tag such as `v0.1.0`. GitHub Actions builds both Linux binaries and attaches them to that release.
+To publish a new release, push a new version tag such as `v0.1.1`. GitHub Actions builds both Linux binaries, packages the VS Code extension, and attaches all three assets to that release.
 
 ## Quick start
 

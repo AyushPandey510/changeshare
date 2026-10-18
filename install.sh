@@ -24,6 +24,28 @@ curl --fail --location --show-error --progress-bar --retry 3 \
   "$RELEASE_URL/$ASSET" --output "$TMP_DIR/$ASSET"
 install -m 755 "$TMP_DIR/$ASSET" "$INSTALL_DIR/changeshare"
 
+VSCODE_CLI=""
+if command -v code >/dev/null 2>&1; then
+  VSCODE_CLI="$(command -v code)"
+elif command -v code-insiders >/dev/null 2>&1; then
+  VSCODE_CLI="$(command -v code-insiders)"
+fi
+
+if [ -n "$VSCODE_CLI" ]; then
+  if curl --fail --location --show-error --progress-bar --retry 3 \
+    "$RELEASE_URL/changeshare-vscode.vsix" --output "$TMP_DIR/changeshare-vscode.vsix"; then
+    if "$VSCODE_CLI" --install-extension "$TMP_DIR/changeshare-vscode.vsix" --force; then
+      echo "Installed the ChangeShare VS Code extension."
+    else
+      echo "Warning: the CLI was installed, but VS Code could not install the extension." >&2
+    fi
+  else
+    echo "Warning: the CLI was installed, but the latest release has no VS Code extension asset." >&2
+  fi
+else
+  echo "VS Code CLI not found; installed the ChangeShare CLI only. Install VS Code's 'code' command on PATH and rerun this installer to add the extension."
+fi
+
 case ":${PATH}:" in
   *":${INSTALL_DIR}:"*) ;;
   *)
