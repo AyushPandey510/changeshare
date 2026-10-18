@@ -438,6 +438,10 @@ function activate(context) {
   context.subscriptions.push(operationStatus, outputChannel, changesView, stashesView, commitsView, actionsView);
   context.subscriptions.push(
     shareButton,
+    // Git changes can come from the integrated terminal or another process, so
+    // VS Code's document events do not cover every update. Poll the Git-backed
+    // trees so working changes, stashes, and commits stay current.
+    new vscode.Disposable(setInterval(refreshViews, 2000)),
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       if (!selectedWorkspace || !(vscode.workspace.workspaceFolders || []).some(folder => folder.uri.toString() === selectedWorkspace.uri.toString())) selectedWorkspace = (vscode.workspace.workspaceFolders || [])[0];
       refreshViews();
