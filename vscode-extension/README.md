@@ -15,6 +15,12 @@ This desktop extension adds guided commands to VS Code while the existing Change
 
 The **Undo Last Transfer** command asks for confirmation before reversing the latest transfer. The status bar shows while a ChangeShare command is running in the background. Configure `changeshare.defaultPort` in VS Code settings if your LAN uses a different port.
 
+Working Changes and Recent Commits use VS Code's Git extension events and a
+short debounce. Stashes refresh from Git state events, with a 30-second fallback
+check only while the Stashes view is visible because the public Git API has no
+stash-list event. You can also run **ChangeShare: Refresh Lists** from the
+Command Palette.
+
 Transfers remain direct between computers on the same LAN. No ChangeShare server is involved. The extension currently targets Linux, matching the available CLI binaries.
 
 ## Develop locally
@@ -34,7 +40,7 @@ Code. To install it from a terminal, use the exact filename printed by the
 package command, for example:
 
 ```sh
-code --install-extension changeshare-vscode-0.1.6.vsix
+code --install-extension changeshare-vscode-0.1.7.vsix
 ```
 
 ## Code map

@@ -2,7 +2,7 @@
   "name": "changeshare-vscode",
   "displayName": "ChangeShare",
   "description": "Share uncommitted Git changes with a colleague on your LAN.",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "publisher": "ayushpandey510",
   "repository": {
     "type": "git",
@@ -12,6 +12,7 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "extensionDependencies": ["vscode.git"],
   "categories": ["Other", "SCM Providers"],
   "keywords": ["git", "share", "lan", "changes"],
   "main": "./extension.js",

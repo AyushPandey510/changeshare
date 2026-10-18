@@ -165,8 +165,9 @@ Common fixes:
 - Peer check fails: check client isolation and local firewall rules.
 - Patch conflicts: use `--dry-run`, try three-way apply, or see the
   [conflict guide](docs/USAGE.md#when-a-patch-conflicts).
-- VS Code list is stale: the extension refreshes Git-backed views every two
-  seconds; see [the extension guide](vscode-extension/README.md).
+- VS Code list is stale: VS Code Git events refresh visible lists; a
+  low-frequency fallback check runs only while the Stashes view is visible.
+  See [the extension guide](vscode-extension/README.md).
 
 More troubleshooting steps are in the [usage guide](docs/USAGE.md#troubleshooting).
 

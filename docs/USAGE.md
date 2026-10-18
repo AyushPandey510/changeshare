@@ -124,9 +124,10 @@ The extension adds four sidebar views:
 - **Actions:** receive, undo, run LAN diagnostics, or choose a project.
 
 The extension delegates transfers to the CLI and maps its prompts to VS Code
-dialogs. Progress and patch details appear in **Output → ChangeShare**. The
-Git-backed views refresh every two seconds so edits from the integrated
-terminal or other programs show up without reloading. Configure
+dialogs. Progress and patch details appear in **Output → ChangeShare**. VS Code's
+Git extension events refresh the relevant visible lists after a short debounce.
+Stashes also have a 30-second fallback check while the Stashes view is visible,
+because the public Git API has no stash-list event. Configure
 `changeshare.defaultPort` in VS Code settings if needed.
 
 The extension currently targets Linux, matching the released CLI binaries.
@@ -199,7 +200,7 @@ closer commit.
 
 Open a Git project and select the ChangeShare Activity Bar icon. Confirm that
 the CLI is installed and `~/.local/bin` is on `PATH`. If the extension is
-installed but a list is stale, allow up to two seconds for its refresh. Check
-**Output → ChangeShare** for command details.
+installed but a list is stale, use **ChangeShare: Refresh Lists** in the
+Command Palette. Check **Output → ChangeShare** for command details.
 
 </details>

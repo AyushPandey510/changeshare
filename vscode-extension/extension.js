@@ -56,6 +56,7 @@ async function chooseWorkspace() {
 }
 
 let selectedWorkspace;
+let refreshGitIntegration = () => {};
 function currentWorkspace() {
   return (
     selectedWorkspace || (vscode.workspace.workspaceFolders || [])[0] || null
@@ -580,7 +581,7 @@ async function selectWorkspace() {
   const folder = await chooseWorkspace();
   if (!folder) return;
   selectedWorkspace = folder;
-  refreshViews();
+  refreshGitIntegration();
   await vscode.window.showInformationMessage(
     `ChangeShare project: ${folder.name}`,
   );
@@ -661,6 +662,11 @@ function activate(context) {
   const actionsView = vscode.window.createTreeView("changeshare.actions", {
     treeDataProvider: actionProvider,
   });
+  const gitViews = [
+    { view: changesView, provider: changeProvider },
+    { view: stashesView, provider: stashProvider },
+    { view: commitsView, provider: commitProvider },
+  ];
   changeTree = changesView;
   if (!selectedWorkspace)
     selectedWorkspace = (vscode.workspace.workspaceFolders || [])[0];
@@ -677,6 +683,130 @@ function activate(context) {
     99,
   );
   outputChannel = getOutputChannel();
+
+  // Let VS Code's Git extension watch repository files and metadata. This
+  // avoids maintaining duplicate filesystem watchers in ChangeShare.
+  let refreshDebounce;
+  let stashFallback;
+  let gitApi;
+  const pendingRefreshes = new Set();
+  let repositorySubscriptions = new Map();
+  const scheduleRefresh = (providers) => {
+    const hasVisibleProvider = providers.some((provider) =>
+      gitViews.some(
+        ({ view, provider: candidate }) =>
+          candidate === provider && view.visible,
+      ),
+    );
+    if (!hasVisibleProvider) return;
+    for (const provider of providers) pendingRefreshes.add(provider);
+    if (refreshDebounce) clearTimeout(refreshDebounce);
+    refreshDebounce = setTimeout(() => {
+      refreshDebounce = undefined;
+      for (const provider of pendingRefreshes) {
+        const entry = gitViews.find(({ provider: candidate }) => candidate === provider);
+        if (entry?.view.visible) provider.refresh();
+      }
+      pendingRefreshes.clear();
+    }, 300);
+  };
+  const selectedRepository = () => {
+    const folder = currentWorkspace();
+    if (!folder || !gitApi) return undefined;
+    return gitApi.repositories.find((repository) =>
+      repository.rootUri.toString() === folder.uri.toString(),
+    );
+  };
+  const disposeRepositorySubscriptions = () => {
+    for (const subscription of repositorySubscriptions.values())
+      subscription.dispose();
+    repositorySubscriptions.clear();
+  };
+  const watchRepository = (repository) => {
+    if (repositorySubscriptions.has(repository)) return;
+    let lastHead = repository.state.HEAD?.commit;
+    const subscriptions = [
+      repository.state.onDidChange(() => {
+        // Working changes and stash operations can affect the Git state.
+        scheduleRefresh([changeProvider, stashProvider]);
+        const head = repository.state.HEAD?.commit;
+        if (head !== lastHead) {
+          lastHead = head;
+          scheduleRefresh([commitProvider]);
+        }
+      }),
+      repository.onDidCommit(() => scheduleRefresh([commitProvider, changeProvider, stashProvider])),
+      repository.onDidCheckout(() => {
+        lastHead = repository.state.HEAD?.commit;
+        scheduleRefresh([changeProvider, stashProvider, commitProvider]);
+      }),
+    ];
+    repositorySubscriptions.set(
+      repository,
+      vscode.Disposable.from(...subscriptions),
+    );
+  };
+  refreshGitIntegration = () => {
+    disposeRepositorySubscriptions();
+    const repository = selectedRepository();
+    if (repository) watchRepository(repository);
+    changeProvider.refresh();
+    stashProvider.refresh();
+    commitProvider.refresh();
+  };
+  const connectGitApi = async () => {
+    const gitExtension = vscode.extensions.getExtension("vscode.git");
+    if (!gitExtension) return;
+    try {
+      const extension = gitExtension.isActive
+        ? gitExtension.exports
+        : await gitExtension.activate();
+      gitApi = extension.getAPI(1);
+      context.subscriptions.push(
+        gitApi.onDidOpenRepository(() => refreshGitIntegration()),
+        gitApi.onDidCloseRepository(() => refreshGitIntegration()),
+      );
+      refreshGitIntegration();
+    } catch (error) {
+      outputChannel.appendLine(
+        `Could not connect to VS Code Git: ${error.message}`,
+      );
+    }
+  };
+  void connectGitApi();
+  for (const { view } of gitViews) {
+    context.subscriptions.push(
+      view.onDidChangeVisibility(({ visible }) => {
+        if (visible) {
+          const provider = gitViews.find(
+            (entry) => entry.view === view,
+          )?.provider;
+          if (provider) scheduleRefresh([provider]);
+        }
+      }),
+    );
+  }
+  const updateStashFallback = () => {
+    if (stashesView.visible && !stashFallback) {
+      // The public Git API has no stash-list event. This low-rate fallback is
+      // active only while the Stashes view is open.
+      stashFallback = setInterval(() => stashProvider.refresh(), 30_000);
+    } else if (!stashesView.visible && stashFallback) {
+      clearInterval(stashFallback);
+      stashFallback = undefined;
+    }
+  };
+  context.subscriptions.push(stashesView.onDidChangeVisibility(updateStashFallback));
+  updateStashFallback();
+  context.subscriptions.push(
+    new vscode.Disposable(() => {
+      if (refreshDebounce) clearTimeout(refreshDebounce);
+      pendingRefreshes.clear();
+      if (stashFallback) clearInterval(stashFallback);
+      disposeRepositorySubscriptions();
+      refreshGitIntegration = () => {};
+    }),
+  );
   context.subscriptions.push(
     operationStatus,
     outputChannel,
@@ -687,10 +817,6 @@ function activate(context) {
   );
   context.subscriptions.push(
     shareButton,
-    // Git changes can come from the integrated terminal or another process, so
-    // VS Code's document events do not cover every update. Poll the Git-backed
-    // trees so working changes, stashes, and commits stay current.
-    new vscode.Disposable(setInterval(refreshViews, 2000)),
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       if (
         !selectedWorkspace ||
@@ -700,7 +826,7 @@ function activate(context) {
         )
       )
         selectedWorkspace = (vscode.workspace.workspaceFolders || [])[0];
-      refreshViews();
+      refreshGitIntegration();
     }),
     vscode.commands.registerCommand("changeshare.share", share),
     vscode.commands.registerCommand("changeshare.shareAll", shareAllChanges),

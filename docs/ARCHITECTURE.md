@@ -68,8 +68,10 @@ separators where possible so spaces and tabs in file names remain intact.
 
 `vscode-extension/extension.js` owns the sidebar trees and VS Code dialogs. It
 starts the CLI as a child process and maps CLI prompts to VS Code prompts. The
-extension refreshes its Git-backed views periodically so changes made in the
-terminal or by another process appear without a manual refresh.
+extension subscribes to VS Code's Git extension API and debounces repository
+state, commit, and checkout events before refreshing relevant visible views.
+The Stashes view uses a 30-second fallback poll while visible because the public
+Git API does not expose a stash-list event.
 
 ## Making a change
 
