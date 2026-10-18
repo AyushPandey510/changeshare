@@ -2,8 +2,12 @@
   "name": "changeshare-vscode",
   "displayName": "ChangeShare",
   "description": "Share uncommitted Git changes with a colleague on your LAN.",
-  "version": "0.1.0",
+  "version": "0.1.5",
   "publisher": "ayushpandey510",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AyushPandey510/changeshare.git"
+  },
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
