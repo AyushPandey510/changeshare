@@ -3,7 +3,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { execFile } = require('node:child_process');
 
-const INSTALL_COMMAND = 'curl -fsSL https://raw.githubusercontent.com/ayushpandey-ops/changeshare/main/install.sh | bash';
+const INSTALL_COMMAND = 'curl -fsSL https://raw.githubusercontent.com/AyushPandey510/changeshare/main/install.sh | bash';
 
 function executableCandidates() {
   const configured = vscode.workspace.getConfiguration('changeshare').get('executablePath');

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="ayushpandey-ops/changeshare"
+REPO="AyushPandey510/changeshare"
 INSTALL_DIR="${HOME}/.local/bin"
 RELEASE_URL="https://github.com/${REPO}/releases/latest/download"
 

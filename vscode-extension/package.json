@@ -3,7 +3,7 @@
   "displayName": "ChangeShare",
   "description": "Share uncommitted Git changes with a colleague on your LAN.",
   "version": "0.1.0",
-  "publisher": "ayushpandeyops",
+  "publisher": "ayushpandey510",
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"

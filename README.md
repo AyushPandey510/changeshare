@@ -17,7 +17,7 @@ Node 22 is required by the selected CPace package. This is newer than the Node 1
 Run this command on Linux:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ayushpandey-ops/changeshare/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/AyushPandey510/changeshare/main/install.sh | bash
 ```
 
 The installer detects x64 or ARM64, downloads the matching latest public release binary, installs it to `~/.local/bin/changeshare`, and adds that directory to the Bash or Zsh PATH configuration if needed. If it updates your shell configuration, open a new terminal (or run the `source` command it prints). Then run `changeshare --version`. Git remains required. Colleagues do not need to clone the repository.
