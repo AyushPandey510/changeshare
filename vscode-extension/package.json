@@ -12,18 +12,61 @@
   "keywords": ["git", "share", "lan", "changes"],
   "main": "./extension.js",
   "activationEvents": [
+    "onView:changeshare.changes",
+    "onView:changeshare.stashes",
+    "onView:changeshare.commits",
+    "onView:changeshare.actions",
     "onCommand:changeshare.share",
+    "onCommand:changeshare.shareAll",
+    "onCommand:changeshare.shareSelected",
+    "onCommand:changeshare.shareStash",
+    "onCommand:changeshare.shareCommit",
+    "onCommand:changeshare.refresh",
+    "onCommand:changeshare.selectWorkspace",
     "onCommand:changeshare.receive",
     "onCommand:changeshare.undo",
     "onCommand:changeshare.doctor"
   ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "changeshare", "title": "ChangeShare", "icon": "resources/changeshare.svg" }
+      ]
+    },
+    "views": {
+      "changeshare": [
+        { "id": "changeshare.changes", "name": "Working Changes" },
+        { "id": "changeshare.stashes", "name": "Stashes" },
+        { "id": "changeshare.commits", "name": "Recent Commits" },
+        { "id": "changeshare.actions", "name": "Actions" }
+      ]
+    },
     "commands": [
       { "command": "changeshare.share", "title": "ChangeShare: Share Changes", "category": "ChangeShare" },
-      { "command": "changeshare.receive", "title": "ChangeShare: Receive Changes", "category": "ChangeShare" },
+      { "command": "changeshare.shareAll", "title": "Share All Changes", "category": "ChangeShare", "icon": "$(send)" },
+      { "command": "changeshare.shareSelected", "title": "Share Selected Changes", "category": "ChangeShare", "icon": "$(checklist)" },
+      { "command": "changeshare.shareStash", "title": "Share Stash", "category": "ChangeShare", "icon": "$(send)" },
+      { "command": "changeshare.shareCommit", "title": "Share Commit", "category": "ChangeShare", "icon": "$(send)" },
+      { "command": "changeshare.refresh", "title": "Refresh ChangeShare Lists", "category": "ChangeShare", "icon": "$(refresh)" },
+      { "command": "changeshare.selectWorkspace", "title": "Choose ChangeShare Project", "category": "ChangeShare", "icon": "$(folder-opened)" },
+      { "command": "changeshare.receive", "title": "ChangeShare: Receive Changes", "category": "ChangeShare", "icon": "$(cloud-download)" },
       { "command": "changeshare.undo", "title": "ChangeShare: Undo Last Transfer", "category": "ChangeShare" },
       { "command": "changeshare.doctor", "title": "ChangeShare: Check LAN Connection", "category": "ChangeShare" }
     ],
+    "menus": {
+      "view/title": [
+        { "command": "changeshare.refresh", "when": "view == changeshare.changes", "group": "navigation" },
+        { "command": "changeshare.shareAll", "when": "view == changeshare.changes", "group": "navigation" },
+        { "command": "changeshare.shareSelected", "when": "view == changeshare.changes", "group": "navigation" },
+        { "command": "changeshare.receive", "when": "view == changeshare.changes", "group": "navigation" },
+        { "command": "changeshare.refresh", "when": "view == changeshare.stashes || view == changeshare.commits", "group": "navigation" },
+        { "command": "changeshare.selectWorkspace", "when": "view == changeshare.changes || view == changeshare.stashes || view == changeshare.commits", "group": "navigation" }
+      ],
+      "view/item/context": [
+        { "command": "changeshare.shareStash", "when": "viewItem == changeshareStash", "group": "inline" },
+        { "command": "changeshare.shareCommit", "when": "viewItem == changeshareCommit", "group": "inline" }
+      ]
+    },
     "configuration": {
       "title": "ChangeShare",
       "properties": {

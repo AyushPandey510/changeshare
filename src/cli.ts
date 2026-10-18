@@ -6,13 +6,13 @@ import { createServer } from 'node:net';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { connect } from 'node:net';
-import { applyPatch, git, localChanges, makeUndo, repoRoot, stashChanges, undo, workingChanges } from './git.js';
+import { applyPatch, commitChanges, git, localChanges, makeUndo, repoRoot, stashChanges, undo, workingChanges } from './git.js';
 import { denied, loadDenylist, secrets, shareCode } from './safety.js';
 import { pullShare, serveShare } from './transfer.js';
 
 const exec = promisify(execFile);
 const VERSION = '0.1.0';
-function help() { console.log(`changeshare ${VERSION}\n\nUsage:\n  changeshare send [paths...] [--stash [ref]] [--yes] [--preview] [--port n] [--expires min] [--include-ignored]\n  changeshare receive <code> [--host ip] [--port n] [--yes] [--3way] [--dry-run] [--preview]\n  changeshare undo\n  changeshare doctor [--listen | --peer ip]\n`); }
+function help() { console.log(`changeshare ${VERSION}\n\nUsage:\n  changeshare send [paths...] [--stash [ref] | --commit <ref>] [--yes] [--preview] [--port n] [--expires min] [--include-ignored]\n  changeshare receive <code> [--host ip] [--port n] [--yes] [--3way] [--dry-run] [--preview]\n  changeshare undo\n  changeshare doctor [--listen | --peer ip]\n`); }
 async function confirm(question: string, yes = false, defaultNo = false) {
   if (yes) return true;
   const rl = createInterface({ input: stdin, output: stdout });
@@ -27,10 +27,14 @@ async function send(args: string[]) {
   const portArg = Number(option(args, '--port', '8765')); const expires = Number(option(args, '--expires', '10'));
   if (!Number.isInteger(portArg) || portArg < 1 || portArg > 65535 || !Number.isInteger(expires) || expires <= 0 || expires > 1440) throw new Error('Port must be 1–65535 and expiry must be 1–1440 minutes.');
   const stash = args.includes('--stash');
+  const commitRef = option(args, '--commit');
+  if (stash && args.includes('--commit')) throw new Error('Choose either --stash or --commit, not both.');
   const stashIndex = args.indexOf('--stash'); const stashRef = stash && args[stashIndex + 1] && !args[stashIndex + 1].startsWith('--') ? args[stashIndex + 1] : undefined;
-  const paths = args.filter((a, i) => !a.startsWith('--') && !(args[i - 1] === '--port' || args[i - 1] === '--expires') && !(stash && i === stashIndex + 1 && stashRef));
+  const commitIndex = args.indexOf('--commit');
+  const paths = args.filter((a, i) => !a.startsWith('--') && !(args[i - 1] === '--port' || args[i - 1] === '--expires') && !(stash && i === stashIndex + 1 && stashRef) && !(commitIndex >= 0 && i === commitIndex + 1));
   const denylist = await loadDenylist(root);
-  let change = stash ? await stashChanges(root, stashRef) : await workingChanges(root, paths, args.includes('--include-ignored'), denylist);
+  if (args.includes('--commit') && !commitRef) throw new Error('Usage: changeshare send --commit <ref>');
+  let change = commitRef ? await commitChanges(root, commitRef) : stash ? await stashChanges(root, stashRef) : await workingChanges(root, paths, args.includes('--include-ignored'), denylist);
   if (!change.patch.length) { console.log('No changes to share'); return; }
   const blocked = args.includes('--include-ignored') ? [] : denied(change.files, denylist);
   if (blocked.length) throw new Error(`Denylist paths are present in the patch: ${blocked.join(', ')}. Remove them or review your .changeshare.json.`);

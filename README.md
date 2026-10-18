@@ -56,13 +56,13 @@ The `vscode-extension/` folder contains a desktop extension that adds Share, Rec
 ## Commands
 
 ```text
-changeshare send [paths...] [--stash [stash@{n}]] [--preview] [--yes] [--port n] [--expires min] [--include-ignored]
+changeshare send [paths...] [--stash [stash@{n}] | --commit <ref>] [--preview] [--yes] [--port n] [--expires min] [--include-ignored]
 changeshare receive <code> [--host ip] [--port n] [--yes] [--3way] [--dry-run] [--preview]
 changeshare undo
 changeshare doctor [--listen | --peer ip]
 ```
 
-`send` includes tracked edits, deletions, and untracked nonignored files. Paths restrict the transfer. `--preview` displays the patch before sending. On `receive`, `--preview` displays the received patch before the apply prompt. `--stash` sends the latest stash or the selected ref. `--yes` skips the ordinary send/apply prompts; secret findings still require explicit confirmation and sender approval is always required.
+`send` includes tracked edits, deletions, and untracked nonignored files. Paths restrict the transfer. `--preview` displays the patch before sending. On `receive`, `--preview` displays the received patch before the apply prompt. `--stash` sends the latest stash or the selected ref. `--commit <ref>` sends a commit's changes, which the receiver applies as uncommitted edits. `--yes` skips the ordinary send/apply prompts; secret findings still require explicit confirmation and sender approval is always required.
 
 The default secret-file denylist is `.env*`, `*.pem`, `*.key`, and `id_rsa*`. Configure it in a repository-local `.changeshare.json`:
 

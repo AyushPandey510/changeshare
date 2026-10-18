@@ -78,6 +78,26 @@ export async function stashChanges(root: string, ref?: string) {
   const baseCommit = (await git(['rev-parse', `${resolved}^1`], root)).toString().trim();
   return { patch, files, statuses, added, removed, baseCommit };
 }
+export async function commitChanges(root: string, ref: string): Promise<ChangeSet> {
+  if (!ref || ref.startsWith('-') || ref.includes('\0')) throw new Error('Provide a valid commit reference.');
+  const commit = (await git(['rev-parse', '--verify', `${ref}^{commit}`], root)).toString().trim();
+  let baseCommit: string;
+  try { baseCommit = (await git(['rev-parse', '--verify', `${commit}^`], root)).toString().trim(); }
+  catch { baseCommit = (await git(['hash-object', '-t', 'tree', '/dev/null'], root)).toString().trim(); }
+  const patch = await git(['diff', '--binary', '--full-index', '--no-ext-diff', baseCommit, commit], root);
+  const files = (await git(['diff', '--name-only', '-z', baseCommit, commit], root)).toString().split('\0').filter(Boolean);
+  const statuses = Object.fromEntries(files.map(file => [file, 'modified']));
+  const statusTokens = (await git(['diff', '--name-status', '-z', baseCommit, commit], root)).toString().split('\0').filter(Boolean);
+  for (let i = 0; i < statusTokens.length;) {
+    const kind = statusTokens[i++]; const first = statusTokens[i++];
+    if (kind.startsWith('R') || kind.startsWith('C')) { const to = statusTokens[i++]; statuses[to] = kind.startsWith('R') ? 'renamed' : 'copied'; }
+    else statuses[first] = ({ A: 'added', D: 'deleted', M: 'modified', T: 'type-changed' } as Record<string, string>)[kind] || 'modified';
+  }
+  const stat = await git(['diff', '--numstat', '-z', baseCommit, commit], root);
+  let added = 0, removed = 0;
+  for (const line of stat.toString().split('\0')) { const [a, d] = line.split('\t'); if (/^\d+$/.test(a)) added += Number(a); if (/^\d+$/.test(d)) removed += Number(d); }
+  return { patch, files, statuses, added, removed, baseCommit };
+}
 export async function applyPatch(root: string, patch: Buffer, threeWay = false, dryRun = false, reverse = false, reject = false) {
   const temp = await mkdtemp(join(tmpdir(), 'changeshare-patch-'));
   const file = join(temp, 'incoming.patch');

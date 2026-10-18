@@ -5,15 +5,15 @@ This desktop extension adds guided commands to VS Code while the existing Change
 ## Use it
 
 1. Run the ChangeShare installer from the main README. It installs the CLI and, when the `code` or `code-insiders` command is available, the VS Code extension too. You can also choose **Install ChangeShare** when prompted by the extension to install the CLI.
-2. Open a Git project in VS Code.
-3. Open the Command Palette (`Ctrl+Shift+P`) and choose one of:
-   - **ChangeShare: Share Changes** — share current changes or choose a stash.
-   - **ChangeShare: Receive Changes** — enter the sender's code.
-   - **ChangeShare: Undo Last Transfer** — undo the latest received transfer.
-   - **ChangeShare: Check LAN Connection** — run the CLI diagnostics.
-4. Choose whether to preview a send or receive, or run a receive dry run. Follow the prompts in the integrated terminal. It shows sender approval, file review, secret checks, apply confirmation, and any Git conflict details.
+2. Open a Git project in VS Code and select the **ChangeShare** icon in the Activity Bar.
+3. Use the sidebar lists:
+   - **Working Changes** lists modified, added, deleted, and untracked files. Select one or more files and use **Share Selected**, or use **Share All**.
+   - **Stashes** lists the project's stashes. Use the send action beside a stash to share it.
+   - **Recent Commits** lists recent commits. Use the send action beside a commit to share its changes as uncommitted edits on the receiver.
+   - **Actions** provides Receive Changes, Undo Last Transfer, LAN diagnostics, and project selection.
+4. Choose whether to preview a send or receive, or run a receive dry run. Confirmations and sender selection appear in VS Code dialogs; command progress and patch details appear in the **ChangeShare** Output channel. Transfers do not require the integrated terminal or Command Palette.
 
-The **Undo Last Transfer** command asks for confirmation before reversing the latest transfer. The status bar shows when a ChangeShare terminal is open. Configure `changeshare.defaultPort` in VS Code settings if your LAN uses a different port.
+The **Undo Last Transfer** command asks for confirmation before reversing the latest transfer. The status bar shows while a ChangeShare command is running in the background. Configure `changeshare.defaultPort` in VS Code settings if your LAN uses a different port.
 
 Transfers remain direct between computers on the same LAN. No ChangeShare server is involved. The extension currently targets Linux, matching the available CLI binaries.
 
