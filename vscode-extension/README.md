@@ -19,8 +19,40 @@ Transfers remain direct between computers on the same LAN. No ChangeShare server
 
 ## Develop locally
 
-Open this folder in VS Code and press `F5` to launch an Extension Development Host. Run `npm run package` to create a `.vsix` package. Install it with **Extensions: Install from VSIX...** or `code --install-extension changeshare-vscode-0.1.0.vsix`.
+Open this folder in VS Code and press `F5` to launch an Extension Development
+Host. This runs the extension in a separate VS Code window, so you can try
+changes without replacing your installed copy.
+
+To build an installable VSIX package, run:
+
+```sh
+npm run package
+```
+
+Install the generated `.vsix` with **Extensions: Install from VSIX...** in VS
+Code. To install it from a terminal, use the exact filename printed by the
+package command, for example:
+
+```sh
+code --install-extension changeshare-vscode-0.1.6.vsix
+```
+
+## Code map
+
+- `extension.js` creates the sidebar views, handles commands and dialogs, and
+  starts the ChangeShare CLI as a child process.
+- `package.json` declares the extension name, activation events, commands,
+  sidebar views, settings, and packaging script.
+- `resources/changeshare.svg` is the Activity Bar icon.
+
+The extension reads Git status, stashes, and commits for the sidebar. The CLI
+does the actual patch creation, safety checks, LAN discovery, and transfer.
 
 ## Release distribution
 
-The VS Code extension is distributed as a VSIX attached to the project's GitHub Releases; it is not published to the Visual Studio Marketplace. The root release workflow packages the extension and attaches it alongside the CLI binaries. See the main [README](../README.md#publish-a-github-release) for the release steps. Users can install both the CLI and extension with the single `curl` command there.
+The VS Code extension is distributed as a VSIX attached to the project's
+GitHub Releases; it is not published to the Visual Studio Marketplace. The
+root release workflow packages the extension and attaches it alongside the
+CLI binaries. See the main [README](../README.md#publish-a-github-release) for
+the release steps. Users can install both the CLI and extension with the
+single `curl` command there.

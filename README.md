@@ -97,6 +97,63 @@ The receiver checks the patch before applying it. A differing base commit prompt
 
 ## Development
 
+### Build and run from source
+
+You need Node.js 22 or later and Git 2.30 or later. From the repository root:
+
+```sh
+npm install
+npm run build
+node dist/cli.js --help
+```
+
+The TypeScript source is in `src/`. The build writes JavaScript and type
+declarations to `dist/`. For example, after building, run `node dist/cli.js
+send` from inside a Git project to start a share.
+
+### Where to find things
+
+| File | What it does |
+| --- | --- |
+| `src/cli.ts` | Reads command-line arguments and coordinates sending, receiving, undo, and diagnostics. |
+| `src/git.ts` | Reads changes from Git, creates and applies patches, and stores undo data. |
+| `src/safety.ts` | Loads the secret-file denylist, checks added lines for likely secrets, and creates share codes. |
+| `src/transfer.ts` | Discovers peers on the LAN and sends or receives encrypted patch bundles. |
+| `vscode-extension/extension.js` | Builds the ChangeShare sidebar and passes user actions to the CLI. |
+| `.github/workflows/release.yml` | Builds Linux binaries and the VS Code package for tagged releases. |
+
+### How a transfer works
+
+1. The sender asks Git for the selected changes. For working-tree changes it
+   uses a temporary Git index, so preparing a transfer does not stage files.
+2. ChangeShare checks the file list and added patch lines, then asks the sender
+   to review and approve the transfer.
+3. The sender starts a short-lived server on a private LAN address and shows a
+   one-time share code. The receiver discovers that server or connects with
+   `--host`.
+4. Both computers use the code to establish an encrypted session. The sender
+   must approve the receiver, and the receiver reviews the patch before it is
+   applied.
+5. ChangeShare saves a reverse patch under `.git/changeshare`, which lets the
+   receiver undo the transfer with `changeshare undo`.
+
+For a deeper explanation of the code, see [the architecture guide](docs/ARCHITECTURE.md).
+
+### VS Code extension
+
+Open `vscode-extension/` in VS Code and press `F5` to launch an Extension
+Development Host. The extension shells out to Git for sidebar data and runs the
+ChangeShare CLI for transfers. To package a local VSIX, run `npm run package`
+from `vscode-extension/`.
+
+### Code style
+
+Use two spaces for indentation and keep one statement per line. Add comments
+when code relies on a Git or network detail that is not obvious from the code
+itself; prefer explaining the reason for a step over repeating what the next
+line already says.
+
+Run `npm run build` after changing TypeScript to catch type and compiler errors.
 ```sh
 npm run build
 ```
